@@ -1,4 +1,4 @@
-function [Rm1,rRm1,gradRm1,gradrRm1] = domSemiAnalyticInt3D(X0,S,n,tau,nu) 
+function [logR,rlogR,gradlogR,Rm1,rRm1,gradRm1,gradrRm1] = domSemiAnalyticInt3D(X0,S,n,tau,nu) 
 %+========================================================================+
 %|                                                                        |
 %|              OPENDOM - LIBRARY FOR NUMERICAL INTEGRATION               |
@@ -62,6 +62,11 @@ omega = omega.*sign(h);
 omega(abs(h)<=1e-8) = 0;
 
 % Output initialization
+logR     = 0;
+rlogR    = zeros(NX0,3);
+gradlogR = -omega*n;
+
+
 Rm1      = -h.*omega;
 rRm1     = zeros(NX0,3);
 gradRm1  = -omega*n;
@@ -85,6 +90,31 @@ for ia = 1:3
            (zX0S(:,iap1) - ps.*tau(ia,3))] ;
     ah = sqrt(sum(xnu.^2,2));
     
+    
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % Ignacio: Regularization of 2D Newton Potential
+    
+    % Integration of log(r) on the edge - general case h>1e-8
+    intlogR = F1(psp1, ah) - F1(ps, ah);
+    
+    % Integration of log(r) on the edge - singular case 
+%     im = (nrmX0S(:,iap1)-abs(ps) < 1e-8);
+    im = logical((ah < 1e-8) .* ((nrmX0S(:,iap1)< 1e-8) + (nrmX0S(:,iap2)< 1e-8))); 
+    intlogR(im) = 0;
+    
+%     il = logical((ps>1e-8) .* (psp1>1e-8) .* im);    % particles on the left of the edge x_____o
+    il = logical(  (nrmX0S(:,iap1)< 1e-8)  .* im);     % particles on the left of the edge
+    intlogR(il) = F2(nrmX0S(il, iap2)) - F2(nrmX0S(il, iap1)); 
+    
+%     ir = logical((ps<-1e-8) .* (psp1<-1e-8) .* im);  % paticles of the right of the edge o_____x
+    ir = logical(  (nrmX0S(:,iap2)< 1e-8) .* im);   % paticles of the right of the edge
+    intlogR(ir) = -F2(nrmX0S(ir, iap2)) + F2(nrmX0S(ir, iap1));
+    
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+    
     % Integration of 1/r on the edge - general case h>1e-8
     intaRm1 = asinh(psp1./ah) - asinh(ps./ah);
     
@@ -105,6 +135,39 @@ for ia = 1:3
     % Integration r on the edge
     intaR = 0.5.*(ar.*nrmX0S(:,iap2) + intaRm1.*ah.^2 + ps2);
     
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % Ignacio: 
+    
+    % Integration of r2log(r) - r2 on the edge
+    intaRlogR = 0.25.* (F3(psp1, ah) - F3(ps, ah));
+    
+    % Integration of r2log(r) - r2 on the edge - singular case 
+%     im = logical((nrmX0S(:,iap1)-abs(ps) < 1e-8));
+    im = logical((ah < 1e-8) .* ((nrmX0S(:,iap1)< 1e-8) + (nrmX0S(:,iap2)< 1e-8))); 
+    intaRlogR(im) = 0;
+    il = logical(  (nrmX0S(:,iap1)< 1e-8)  .* im);     % particles on the left of the edge
+    intaRlogR(il) = 0.25*F4(nrmX0S(il, iap2)) - 0.25*F4(nrmX0S(il, iap1));
+    ir = logical(  (nrmX0S(:,iap2)< 1e-8) .* im);   % paticles of the right of the edge
+    intaRlogR(ir) = -0.25*F4(nrmX0S(ir, iap2)) + 0.25*F4(nrmX0S(ir, iap1)); 
+    
+    
+    % Integration of log(r)
+    logR = logR + intlogR .* (...
+        xX0S(:,iap1)*nu(ia,1) + ...
+        yX0S(:,iap1)*nu(ia,2) + ...
+        zX0S(:,iap1)*nu(ia,3) );
+    
+    % Integration of rlog(r)
+    rlogR = rlogR + intaRlogR*nu(ia,:); 
+    
+    
+    % Integration of grad(log(r))
+    gradlogR = gradlogR + intlogR*nu(ia,:);  
+    
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
     % Integration of 1/r
     Rm1 = Rm1 + intaRm1 .* (...
         xX0S(:,iap1)*nu(ia,1) + ...
@@ -123,6 +186,9 @@ for ia = 1:3
     gradrRm1(:,:,3) = gradrRm1(:,:,3) + nu(ia,3) * inta_rRm1(:,:);
 end
 
+logR = 0.5 * (logR - elt_volume(S));
+
+
 % Normal component of grad(r)
 rRm1 = rRm1 + (h.*Rm1)*n;
 for i = 1:3
@@ -131,3 +197,58 @@ for i = 1:3
     end
 end
 end
+
+
+function y = F1(x,d)
+y = 1/2*x.*log(x.^2+d.^2) - x + d.*atan(x./d);
+end
+
+function y = F2(x)
+y = xlog(x) - x;
+end
+
+function y = xlog(x)
+y    = x.*log(abs(x));
+I    = (abs(x)<1e-12); 
+y(I) = 0;
+end
+
+function y = d2log(x, d)
+y    = d.^2.*log(x.^2 + d.^2);
+I    = (abs(d)<1e-8); 
+y(I) = 0;
+end
+
+function Vol = elt_volume(S)
+    % Basis vector
+    E1 = S(2, :) - S(1, :);
+    E2 = S(3, :) - S(2, :);
+    E3 = cross(E1,E2,2);
+    
+    % Volume
+    Vol = 0.5*sqrt(sum(E3.^2,2));
+
+end
+
+function y = F3(x, d)
+
+    y1 = 12*d.^3.*atan(x./d);
+    
+    y2a = d2log(x, d);
+    y2b = xlog(x.^2 + d.^2);
+    
+    y2 = 3*x.* (2*y2a + y2b);
+    y3 = -21*d.^2 .* x - 5*x.^3;
+    
+    y = (y1 + y2 + y3) / 9;
+end
+
+
+function y = F4(x)
+    y = x .* xlog(x.^2) / 3 - 5*x.^3 / 9; 
+end
+
+function y = F5(x,d)
+    y = 0.25 * (xlog(x.^2 + d.^2) - x.^2);
+end
+

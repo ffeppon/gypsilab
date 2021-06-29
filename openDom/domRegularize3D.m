@@ -70,7 +70,7 @@ if (length(data) == 5)
     [X,Wx] = Xdom.qud;
 end
 Nx = size(X,1);
-
+ 
 % Rangesearch with max(|edge|)_Y
 [Ielt,Relt] = rangeSearch(X,ctr,1.1*stp(2));                  %%% DEBUG %%%
 Mx = cell(Nelt,1);
@@ -107,7 +107,7 @@ for el = 1:Nelt
     if ~isempty(Ix)
         %%% CORRECTION WITH SEMI-ANALYTIC INTEGRATION
         % Analytical integration
-        [Rm1,rRm1,gradRm1,gradrRm1] = domSemiAnalyticInt3D(X(Ix,:),Sel,Nel,Tel,NUel);
+        [logR,rlogR,gradlogR,Rm1,rRm1,gradRm1,gradrRm1] = domSemiAnalyticInt3D(X(Ix,:),Sel,Nel,Tel,NUel);
 %                 Rm1(:) = 0; rRm1(:) = 0; gradRm1(:) = 0; gradrRm1(:) = 0;    %%% DEBUG %%%
         
         % Vector yg-x
@@ -120,6 +120,40 @@ for el = 1:Nelt
         Rxy              = sqrt(XY1.^2 + XY2.^2 + XY3.^2);
         Rxym1            = 1./Rxy;
         Rxym1(Rxy<1e-12) = 0;
+        
+        % Ignacio: I added this term to regularize 2D Newton Potential
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        logRxy            = log(Rxy);
+        logRxy(Rxy<1e-12) = 0;
+        
+        % Int_el(log|r|) - Sum_g log|yg-x|
+        logR = logR - logRxy * Wy(Iy);
+        
+        % Int_el(rlog|r|) - Sum_g (yg-x)/|yg-x|
+        rlogR(:,1) = rlogR(:,1) - (XY1 .* logRxy) * Wy(Iy);
+        rlogR(:,2) = rlogR(:,2) - (XY2 .* logRxy) * Wy(Iy);
+        rlogR(:,3) = rlogR(:,3) - (XY3 .* logRxy) * Wy(Iy);
+        
+        % Int_el(-r/|r|^2) - Sum_g -(yg-x)/|yg-x|^2   %% grad(log(r))
+        Rxym12       = Rxym1.^2;
+        gradlogR(:,1) = gradlogR(:,1) - (XY1 .* Rxym12) * Wy(Iy);
+        gradlogR(:,2) = gradlogR(:,2) - (XY2 .* Rxym12) * Wy(Iy);
+        gradlogR(:,3) = gradlogR(:,3) - (XY3 .* Rxym12) * Wy(Iy);
+        
+        % Int_el grad(rlog(|r|)) = Int_el Id*log(|r|) + riorj/|r|^2 
+%         gradrlogR(:,1,1) = gradrlogR(:,1,1) - logRxy * Wy(Iy);
+%         gradrlogR(:,2,2) = gradrlogR(:,2,2) - logRxy * Wy(Iy);
+%         gradrlogR(:,3,3) = gradrlogR(:,3,3) - logRxy * Wy(Iy);
+%         gradrlogR(:,1,1) = gradrlogR(:,1,1) - (XY1 .* XY1 .* Rxym12) * Wy(Iy);
+%         gradrlogR(:,1,2) = gradrlogR(:,1,2) - (XY1 .* XY2 .* Rxym12) * Wy(Iy);
+%         gradrlogR(:,1,3) = gradrlogR(:,1,3) - (XY1 .* XY3 .* Rxym12) * Wy(Iy);
+%         gradrlogR(:,2,1) = gradrlogR(:,2,1) - (XY2 .* XY1 .* Rxym12) * Wy(Iy);
+%         gradrlogR(:,2,2) = gradrlogR(:,2,2) - (XY2 .* XY2 .* Rxym12) * Wy(Iy);
+%         gradrlogR(:,2,3) = gradrlogR(:,2,3) - (XY2 .* XY3 .* Rxym12) * Wy(Iy);
+%         gradrlogR(:,3,1) = gradrlogR(:,3,1) - (XY3 .* XY1 .* Rxym12) * Wy(Iy);
+%         gradrlogR(:,3,2) = gradrlogR(:,3,2) - (XY3 .* XY2 .* Rxym12) * Wy(Iy);
+%         gradrlogR(:,3,3) = gradrlogR(:,3,3) - (XY3 .* XY3 .* Rxym12) * Wy(Iy) ;
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         
         % Int_el(1/|r|) - Sum_g 1/|yg-x|
         Rm1 = Rm1 - Rxym1 * Wy(Iy);
@@ -151,7 +185,7 @@ for el = 1:Nelt
         gradrRm1(:,2,3) = gradrRm1(:,2,3) + (XY2 .* XY3 .* Rxym13) * Wy(Iy);
         gradrRm1(:,3,1) = gradrRm1(:,3,1) + (XY3 .* XY1 .* Rxym13) * Wy(Iy);
         gradrRm1(:,3,2) = gradrRm1(:,3,2) + (XY3 .* XY2 .* Rxym13) * Wy(Iy);
-        gradrRm1(:,3,3) = gradrRm1(:,3,3) + (XY3 .* XY3 .* Rxym13) * Wy(Iy);
+        gradrRm1(:,3,3) = gradrRm1(:,3,3) + (XY3 .* XY3 .* Rxym13) * Wy(Iy) ;
 %         norm(gradrRm1(:,:,1))                               %%% DEBUG %%%
 %         norm(gradrRm1(:,:,2))                               %%% DEBUG %%%
 %         norm(gradrRm1(:,:,3))                               %%% DEBUG %%%
@@ -186,6 +220,25 @@ for el = 1:Nelt
                 ii = str2double(green(end-1));
                 jj = str2double(green(end));
                 V  = 2*(ii==jj).*Rm1 - gradrRm1(:,ii,jj);
+            
+            
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            % Ignacio: This is for 2D Newton Potential    
+            elseif strcmp(green,'[log(r)]') && strcmp(v.opr,'[psi]')
+                V = logR;
+
+            elseif strcmp(green,'[log(r)]') && strcmp(v.opr,'n*[psi]')
+                V{1} = logR .* Nel(1);
+                V{2} = logR .* Nel(2);
+                V{3} = logR .* Nel(3);
+                
+            elseif strcmp(green,'grady[log(r)]') && strcmp(v.opr,'n*[psi]')
+                V = gradlogR * Nel';
+                
+            elseif strcmp(green(1:end-1),'grady[log(r)]') && strcmp(v.opr,'[psi]')
+                ii = str2double(green(end));
+                V  = gradlogR(:,ii);
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 
             else
                 error('domRegularize3D.m : unavailable case')
@@ -223,6 +276,26 @@ for el = 1:Nelt
                     V{2}(:,j) = NxNUj(2)/hj .* Rm1;
                     V{3}(:,j) = NxNUj(3)/hj .* Rm1;
                     
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                % Ignacio: This is for 2D Newton Potential    
+                elseif strcmp(green,'[log(r)]') && strcmp(v.opr,'[psi]')
+                    V(:,j) = logR.*tmp + rlogR*NUel(j,:)'/hj;
+                    
+                elseif strcmp(green,'[log(r)]') && strcmp(v.opr,'n*[psi]')
+                    Vx        = logR.*tmp + rlogR*NUel(j,:)'/hj;
+                    V{1}(:,j) = Vx .* Nel(1);
+                    V{2}(:,j) = Vx .* Nel(2);
+                    V{3}(:,j) = Vx .* Nel(3);
+                    
+                elseif strcmp(green,'grady[log(r)]') && strcmp(v.opr,'n*[psi]')
+                    V(:,j) = tmp .* (gradlogR * Nel');
+                    
+                elseif strcmp(green(1:end-1),'grady[log(r)]') && strcmp(v.opr,'[psi]')
+                    ii     = str2double(green(end));
+                    V(:,j) = tmp .* gradlogR(:,ii);
+                
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                    
                 elseif strcmp(green,'grady[1/r]') && strcmp(v.opr,'n*[psi]')
                     V(:,j) = tmp .* (gradRm1 * Nel');
                     
@@ -234,6 +307,7 @@ for el = 1:Nelt
                     ii     = str2double(green(end-1));
                     jj     = str2double(green(end));
                     V(:,j) = (2*(ii==jj).*Rm1 - gradrRm1(:,ii,jj)).*tmp;
+          
                     
                 else
                     error('domRegularize3D.m : unavailable case')
