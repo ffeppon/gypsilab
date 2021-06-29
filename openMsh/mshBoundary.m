@@ -1,4 +1,4 @@
-function [mesh,I] = mshBoundary(mesh)
+function mesh = mshBoundary(mesh)
 %+========================================================================+
 %|                                                                        |
 %|                 OPENMSH - LIBRARY FOR MESH MANAGEMENT                  |

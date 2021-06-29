@@ -39,9 +39,8 @@ elseif (size(mesh.elt,2) == 2)
     
 % Triangular mesh
 elseif (size(mesh.elt,2) == 3)
-    % Mesh unchanged.
     fce2vtx = mesh.elt;
-    elt2fce = (1:size(mesh.elt,1))'; % Faces and elements are the same
+    elt2fce = (1:size(mesh.elt,1))';
     col     = mesh.col;
     
 % Tetrahedral mesh
@@ -49,26 +48,24 @@ elseif (size(mesh.elt,2) == 4)
     % All faces
     fce2vtx = [ mesh.elt(:,[2,3,4]) ; mesh.elt(:,[3,4,1]) ; ...
         mesh.elt(:,[4,1,2]) ; mesh.elt(:,[1,2,3]) ];
-    elt2fce = reshape(1:(4*length(mesh)),length(mesh),4);
+    
     % Faces unicity
     tmp           = sort(fce2vtx,2);
-    [~,I,J] = unique(tmp,'rows','stable');
-    % I : indices of faces to keep
-    % J : new names of faces (give same name to identical faces)
-    elt2fce(:) = J(elt2fce(:)); % Translate in terms of unique face names
+    [~,I,elt2fce] = unique(tmp,'rows');
     
     % Final faces
-    fce2vtx = fce2vtx(I,:); % Keep only one exemplary of each face
+    fce2vtx = fce2vtx(I,:);
+    elt2fce = reshape(elt2fce,size(mesh.elt,1),4);
     
     % Colours
     col             = zeros(size(fce2vtx,1),1);
     tmp             = mesh.col * ones(1,4);
     col(elt2fce(:)) = tmp(:);
     
-    % Identify boundary % what was this ?
-    %     bnd      = ( accumarray(elt2fce(:),1).*col ~= accumarray(elt2fce(:),tmp(:)) );
-    %     col(bnd) = -1;
-    %
+    % Identify boundary
+    bnd      = ( accumarray(elt2fce(:),1).*col ~= accumarray(elt2fce(:),tmp(:)) );
+    col(bnd) = -1;
+    
 % Unknown type
 else
     error('mshFace.m : unavailable case')
