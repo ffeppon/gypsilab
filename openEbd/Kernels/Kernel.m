@@ -48,7 +48,7 @@ classdef Kernel
                 kernel.gamma_est = @(tol)deal(0,3); % No fine tuning of gamma
                 kernel.lim0 = func(0);
             else
-                kernel.lim0 = 0;
+                kernel.lim0 = kernel.func(1e-13);
             end
         end
     end
@@ -56,7 +56,7 @@ classdef Kernel
     methods (Access = public)
         
         % Efficient Bessel Decomposition for the kernel.        
-        function[onlineEBD,rq,loc] = offlineEBD(this,X,Y,a,tol)
+        function[onlineEBD,rq,loc,mv] = offlineEBD(this,X,Y,a,tol)
             
             % Rescaling
             rMax = rMaxCalc(X,Y); % diameter
@@ -75,6 +75,7 @@ classdef Kernel
             loc = localCorrections(x,y,a,k1,rq,tol,false);
             % We are ready to compute fast convolutions. 
             onlineEBD = @(v)(q2d.conv(x,y,v) + loc*v); 
+            mv = @(v)(q2d.conv(x,y,v));
         end
         function[MVx,MVy,rq,locx,locy] = offline_dEBD(this,X,Y,a,tol)
             
@@ -102,12 +103,12 @@ classdef Kernel
         function[out] = eval(this,x)
             fun = this.func;
             out = fun(x);
-            out(abs(x) < 1e-12) = this.lim0;
+            out(abs(x) < 1e-13) = this.lim0;
         end
         function[out] = evalDer(this,x)
             fun = this.der;
             out = fun(x);
-            out(abs(x) < 1e-12) = 0;
+            out(abs(x) < 1e-13) = 0;
         end
         % Setters
         function[this] = setScalFunc(this,f)

@@ -1,0 +1,11 @@
+m = mshDisk(500,1);
+Gamma = dom(m,3);
+Vh = fem(m,'P1');
+green= '[H0(kr)]';
+tol = 1e-3;
+k = 10;
+
+S = integralEbd(Gamma,Gamma,Vh,green,k,Vh,tol,1);
+S = S + -1/(2*pi)*regularize(Gamma,Gamma,Vh,'[1/r]',Vh); % Changer 
+u = randn(size(S,2),1);
+S*u;

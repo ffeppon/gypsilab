@@ -50,7 +50,7 @@ function [rq] = radialQuad(a,G,tol,varargin)
 % - scal01 : values of 2\pi\int_{0}^{1} r(f'(r)ep'(r))dr
 % - nIter : number of iterations the function has needed.
 
-MAXIMAL_NUMBER_OF_COMPONENTS = 2500;
+MAXIMAL_NUMBER_OF_COMPONENTS = 1500;
 % You can change this value if you have enough memory.
 % You can set it to Inf but it could lead to 'Out of Memory' errors.
 if nargin ==0
@@ -182,11 +182,12 @@ else
             if startFreq==0
                 rho = besselJroots(0,Pup);
             else
-                rho = unique([besselJroots(0,fix(Pup/2)+1);besselJroots(startFreq,fix(Pup/2)+1)],'stable');
                 count = Pup;
+                rho = unique([besselJroots(0,fix(count/4)+1); besselJroots(startFreq,fix(count/2)+1);besselJroots(0,fix(count/4)+1)],'stable');
+                
                 while length(rho) < Pup
                     count = count*2;
-                    rho = unique([besselJroots(0,fix(count/2)+1);besselJroots(startFreq,fix(count/2)+1)],'stable');
+                    rho = unique([besselJroots(0,fix(count/4)+1); besselJroots(startFreq,fix(count/2)+1);besselJroots(0,fix(count/4)+1)],'stable');
                 end
                 Pup = length(rho);
             end
