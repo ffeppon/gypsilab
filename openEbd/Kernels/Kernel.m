@@ -19,7 +19,6 @@ classdef Kernel
         % quadrature optimized for this kernel. 
         singular = true;
         % Set to false if x G'(x)^2 is integrable near 0. 
-        lim0;
     end
     
     methods
@@ -43,13 +42,6 @@ classdef Kernel
             % is located in the spectrum. 
             kernel.gamma_est = @(tol)deal(0,7); % No fine tuning of gamma
             kernel.customRadialQuad = [];
-            if ~ or(isinf(func(0)),isnan(func(0)))
-                kernel.singular = false;
-                kernel.gamma_est = @(tol)deal(0,3); % No fine tuning of gamma
-                kernel.lim0 = func(0);
-            else
-                kernel.lim0 = kernel.func(1e-13);
-            end
         end
     end
     
@@ -103,12 +95,10 @@ classdef Kernel
         function[out] = eval(this,x)
             fun = this.func;
             out = fun(x);
-            out(abs(x) < 1e-13) = this.lim0;
         end
         function[out] = evalDer(this,x)
             fun = this.der;
             out = fun(x);
-            out(abs(x) < 1e-13) = 0;
         end
         % Setters
         function[this] = setScalFunc(this,f)
@@ -129,7 +119,6 @@ classdef Kernel
             C.customRadialQuad = @(a,tol,varargin)(k1.radialQuadKernel(a,tol/2,varargin{:}) ...
                 + k2.radialQuadKernel(a,tol/2,varargin{:}));
             C.singular = or(k1.singular,k2.singular);
-            C.lim0 = k1.lim0 + k2.lim0;
         end
         % Multiplication by a constant
         function[c] = mtimes(lambda,this)
@@ -140,7 +129,6 @@ classdef Kernel
                 c.der = @(x)(lambda*this.der(x));
                 c.scalFunc = @(a,b,rho)(lambda*this.scalFunc(a,b,rho));
                 c.normFunc = @(a,b)(abs(lambda)*this.normFunc(a,b));
-                c.lim0 = lambda*this.lim0;
                 c.customRadialQuad = @(a,tol,varargin)(lambda*this.radialQuadKernel(a,tol/lambda,varargin{:}));
             else
                 assert(and(isa(this,'double'),isscalar(this)))
@@ -165,7 +153,6 @@ classdef Kernel
             dder = @(x)(lambda*oldDer(lambda*x));
             this = Kernel(ffunc,dder);
             this = this.setStartFreq(lambda*old.startFreq);
-            this.lim0 = old.lim0;
         end
         
         

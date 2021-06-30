@@ -27,7 +27,10 @@ switch(kernel_string)
         K = LogKernel(1);
         [MV,~,loc] = offlineEBD(K,X,Y,a,tol);
     case '[H0(kr)]'
-        K = H0Kernel(k);
+        C = 1;
+        cut = 1e-12;
+        valz = besselh(0,k*1e-12) - 2i/pi*log(1e-12);
+        K = H0Kernel(k,C,cut,valz);
         [MV,~,loc] = offlineEBD(K,X,Y,a,tol);
     case 'grady[log(r)]'
         K = LogKernel(1);

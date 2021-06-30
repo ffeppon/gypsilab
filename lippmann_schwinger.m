@@ -39,19 +39,19 @@ Gxy = @(X,Y) -1i/(4)*femGreenKernel(X,Y,'[H0(kr)]',k);
 tol=1e-3;
 lambda =1;
 Id = integral(Omega, Vh,Vh);
-%A = integral(Omega,Omega,Vh,Gxy,Vh);
-%A = A+1/(2*pi)*regularize(Omega,Omega,Vh,'[log(r)]',Vh);
-
-A = -1i/4*integralEbd(Omega,Omega,Vh,'[H0(kr)]',k,Vh,tol,lambda);
+A = integral(Omega,Omega,Vh,Gxy,Vh);
 A = A+1/(2*pi)*regularize(Omega,Omega,Vh,'[log(r)]',Vh);
+
+% A = -1i/4*integralEbd(Omega,Omega,Vh,'[H0(kr)]',k,Vh,tol,lambda);
+% A = A+1/(2*pi)*regularize(Omega,Omega,Vh,'[log(r)]',Vh);
 
 %%
 coeff = 10;
 K = Id - (1-coeff)*k^2*A;
 b = integral(Omega,Vh,F);
 
-%x = K\b;
-x = gmres(@(x)(K*x),b,[],1e-6,100);
+x = K\b;
+% x = gmres(@(x)(K*x),b,[],1e-6,100);
 system('mkdir output')
 %clc;
 %axis equal;
@@ -65,7 +65,7 @@ system('mkdir output')
 %% Visualisation
 
 pts2 = mesh2.vtx;
-Interp = -1i/4*integral(pts2,Omega,Gxy,Vh);
+Interp = integral(pts2,Omega,Gxy,Vh); % J'ai enlevé -1i/4 en facteur ici (il y est déjà dans Gxy)
 Interp = Interp+1/(2*pi)*regularize(pts2,Omega,'[log(r)]',Vh);
 
 

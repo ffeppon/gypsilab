@@ -8,26 +8,26 @@ classdef H0Kernel < Kernel
     end
     methods
         function[this] = H0Kernel(kk,CC,cut,valz)
-            if ~exist('cut','var')||isempty(cut)
+            if ~exist('cutoff','var')||isempty(cut)
                 cut = 0;
             end
-            if ~exist('valz','var')||isempty(valz)
+            if ~exist('val0')||isempty(valz)
                 valz = 0;
             end
-            if ~exist('CC','var')||isempty(CC)
+            if ~exist('var','CC')||isempty(CC)
                 CC = 1;
             end
-            if ~exist('kk','var')||isempty(kk)
+            if ~exist('var','kk')||isempty(kk)
                 kk = 1;
             end
             this.cutoff = cut; 
-            this.val0 = valz;
+            this.valz = valz;
             this.k = kk;
             this.C = CC;
             Jk = J0Kernel(kk);
             Yk = Y0Kernel(kk);
             modelKern = this.C*(Jk + 1i*Yk);
-            this.func = @(x)(H0Kernel.funcCutoff(this.k,x,this.cutoff,this.val0));
+            this.func = @(x)(H0Kernel.funcCutoff(this.k,x,this.cutoff,this.valz));
             this.der = modelKern.der;
             this.scalFunc = modelKern.scalFunc;
         end

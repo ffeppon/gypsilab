@@ -15,8 +15,8 @@ classdef Y0Kernel < Kernel
             if nargin <= 1
                 CC = 1;
             end
-            func = @(x)(CC*bessely(0,RR*x));
-            der = @(x)(-RR*CC*bessely(1,RR*x));
+            func = @(x)(CC*Y0Kernel.nonNaNY0(RR*x));
+            der = @(x)(-RR*CC*Y0Kernel.nonNaNY1(RR*x));
             kernel@Kernel(func,der);
             kernel.R = RR;
             kernel.C = CC;
@@ -24,7 +24,6 @@ classdef Y0Kernel < Kernel
             kernel = kernel.setNormFunc(@(a,b)(CC*kernel.normFuncHelmholtz(a,b)));
             kernel = kernel.setStartFreq(RR);
             kernel.singular = true;
-            kernel.lim0 = CC*bessely(0,RR*1e-13); 
         end
     end
     methods (Access = public)
@@ -57,9 +56,7 @@ classdef Y0Kernel < Kernel
             %https://www.wolframalpha.com/input/?i=integral+from+a+to+b+of+R%5E2+x+*+(bessely(1,R+x))%5E2
         end
         function[out] = dilatation(this,lambda)
-            lim0keep = this.lim0;
             out = Y0Kernel(lambda*this.R,this.C);
-            out.lim0 = lim0keep;
         end
         function[out] = mtimes(this,mu)
             if isa(this,'Kernel')
@@ -96,5 +93,15 @@ classdef Y0Kernel < Kernel
         end
         
         
+    end
+    methods (Static)
+        function[y] = nonNaNY0(x)
+            y = bessely(0,x);
+            y(or(isnan(y),isinf(y))) = 0;
+        end
+        function[y] = nonNaNY1(x)
+            y = bessely(1,x);
+            y(or(isnan(y),isinf(y))) = 0;
+        end
     end
 end

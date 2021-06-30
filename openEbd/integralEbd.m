@@ -31,9 +31,9 @@ if nargin == 7
     end
     
     [Gxy,loc]       = MVproduct(green,X(:,1:2),Y(:,1:2),tol,k,'lambda',lambda);
-    aP	= @(V) Gxy(Mv*V);
-    A               = AbstractMatrix([],aP,Nx,size(Mv,2));
+    aP              = @(V) Gxy(Mv*V);
     loc             = loc*Mv;
+    A               = AbstractMatrix([],aP,Nx,size(Mv,2));
     
     
     %%% EFFCIENT BESSEL DECOMPOSITION WITH BOUNDARY ELEMENT OPERATOR
@@ -84,9 +84,8 @@ elseif nargin == 8
     
     [Gxy,loc] = MVproduct(green,X(:,1:2),Y(:,1:2),tol,k,'lambda',lambda);
     aP        = @(V) Mu*Gxy(Mv*V);
-    A         = AbstractMatrix([],aP,size(Mu,1),size(Mv,2));
     loc       = Mu*loc*Mv;
-    
+    A         = AbstractMatrix([],aP,size(Mu,1),size(Mv,2));
 end
 
 

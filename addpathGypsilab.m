@@ -1,13 +1,3 @@
 function addpathGypsilab()
-addpath('miscellaneous')
-addpath('openBmm')
-addpath('openDom')
-addpath('openEbd')
-addpath('openFem')
-addpath('openFfm')
-addpath('openHmx')
-addpath('openMmg')
-addpath('openMsh')
-addpath('openOpr')
-addpath('openRay')
+addpath(genpath(pwd));
 end

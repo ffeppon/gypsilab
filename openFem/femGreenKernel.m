@@ -127,8 +127,13 @@ end
 if strcmp(green,'[exp(ikr)/r]')
     Gxy(Rxy<1e-12) = 0 + 1i*k;
 elseif strcmp(green,'[H0(kr)]')
-    gamma         = 0.5772156649;
-    Gxy(Rxy<1e-12) = 1 + 1i*(2/pi*(gamma+log(k/2)));    
+    % We write 1i/4H0(kr) = 
+    % (-1)/(2*pi)*log(r) + [1i/4*H0(kr) - (-1)/(2*pi)*log(r)]
+    % i.e. 
+    % H0(kr) = 2i/pi*log(r) + [H0(kr) - 2i/pi*log(r)]
+    % For consistency, first term is 0, we put the limit at 0 of the second
+    % term:
+    Gxy(Rxy < 1e-12) = besselh(0,k*1e-12) - 2i/pi*log(1e-12);
 else
     Gxy(Rxy<1e-12) = 0;
 end
