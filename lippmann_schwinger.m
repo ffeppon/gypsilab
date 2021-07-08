@@ -1,7 +1,7 @@
 %% Loading gypsilab
 clear
 close all
-prefix = '/home/florian/polybox/latex/draft_nystrom/numerics/gypsilab/martin/gypsilab/';
+prefix = 'gypsilab_martin';
 addpath([[prefix,'openMsh/']])
 addpath([[prefix,'openDom/']])
 addpath([[prefix,'openFem/']])
@@ -47,7 +47,7 @@ A = A+1/(2*pi)*regularize(Omega,Omega,Vh,'[log(r)]',Vh);
 
 %%
 coeff = 10;
-K = Id - (1-coeff)*k^2*A;
+K = Id - (1-coeff)*k^2/pi*A;
 b = integral(Omega,Vh,F);
 
 x = K\b;
